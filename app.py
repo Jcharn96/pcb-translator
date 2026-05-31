@@ -2,41 +2,80 @@ import streamlit as st
 import google.generativeai as genai
 import streamlit.components.v1 as components
 
+# ---------------- APP CONFIG (APP-LIKE UI) ----------------
 st.set_page_config(
     page_title="PCB Translator",
-    page_icon="🌏"
+    page_icon="🌏",
+    layout="centered",
+    initial_sidebar_state="collapsed"
 )
+
+# hide sidebar completely
+st.markdown("""
+<style>
+[data-testid="stSidebar"] {display: none;}
+</style>
+""", unsafe_allow_html=True)
 
 st.title("🌏 PCB Translator")
 
+# ---------------- API KEY ----------------
 api_key = st.secrets["GEMINI_API_KEY"]
 
-text = st.text_area("Enter text", height=150)
+# ---------------- SESSION STATE ----------------
+if "history" not in st.session_state:
+    st.session_state.history = []
+
+if "last_input" not in st.session_state:
+    st.session_state.last_input = ""
 
 # ---------------- COPY FUNCTION ----------------
 def copy_button(text, label):
     components.html(f"""
         <button onclick="navigator.clipboard.writeText(`{text}`)"
-        style="padding:6px 10px;margin:4px 0;cursor:pointer;">
-            📋 Copy {label}
+        style="
+            padding:8px 12px;
+            margin:5px 0;
+            border-radius:8px;
+            border:1px solid #ccc;
+            cursor:pointer;
+            width:100%;
+        ">
+        📋 Copy {label}
         </button>
-    """, height=40)
+    """, height=45)
 
-# ---------------- INIT SESSION ----------------
-if "history" not in st.session_state:
-    st.session_state.history = []
+# ---------------- CARD UI ----------------
+def card(title, content):
+    st.markdown(f"""
+    <div style="
+        padding:12px;
+        border-radius:10px;
+        border:1px solid #ddd;
+        margin-bottom:10px;
+        background-color:#fafafa;
+    ">
+    <b>{title}</b><br>{content}
+    </div>
+    """, unsafe_allow_html=True)
 
-if "favorites" not in st.session_state:
-    st.session_state.favorites = []
+# ---------------- INPUT ----------------
+st.markdown("### 🧠 Input (PCB Term)")
+text = st.text_area("", height=140, placeholder="Enter PCB / Lithography / defect term...")
+
+col1, col2 = st.columns(2)
+
+translate_btn = col1.button("🌍 Translate")
+info_btn = col2.button("📖 More Info")
 
 # ---------------- TRANSLATE ----------------
-if st.button("Translate"):
+if translate_btn:
 
     genai.configure(api_key=api_key)
     model = genai.GenerativeModel("gemini-2.5-flash")
 
     prompt = f"""
-You are a professional PCB translator.
+You are a professional PCB manufacturing translator.
 
 Expertise:
 - Lithography
@@ -45,7 +84,8 @@ Expertise:
 - Photoresist
 - Alignment
 - SPC
-- Yield Analysis
+- Yield analysis
+- Etching
 
 Return EXACT format:
 
@@ -65,18 +105,12 @@ Text:
 {text}
 """
 
-    response = model.generate_content(prompt)
-    result = response.text
+    with st.spinner("Translating..."):
+        response = model.generate_content(prompt)
+        result = response.text
 
-    st.session_state["last_input"] = text
-
-    # save history
-    st.session_state.history.append({
-        "input": text,
-        "output": result
-    })
-
-    st.markdown("## Translation Result")
+    st.session_state.last_input = text
+    st.session_state.history.append(text)
 
     try:
         thai = result.split("English:")[0].replace("Thai:", "").strip()
@@ -84,86 +118,53 @@ Text:
         chinese = result.split("Chinese:")[1].split("Pinyin:")[0].strip()
         pinyin = result.split("Pinyin:")[1].strip()
 
-        st.text_area("🇹🇭 Thai", thai, height=80)
+        st.markdown("## 🌍 Result")
+
+        card("🇹🇭 Thai", thai)
         copy_button(thai, "Thai")
 
-        st.text_area("🇬🇧 English", english, height=80)
+        card("🇬🇧 English", english)
         copy_button(english, "English")
 
-        st.text_area("🇨🇳 Chinese", chinese, height=80)
+        card("🇨🇳 Chinese", chinese)
         copy_button(chinese, "Chinese")
 
-        st.text_area("🔤 Pinyin", pinyin, height=80)
+        card("🔤 Pinyin", pinyin)
         copy_button(pinyin, "Pinyin")
 
-        # favorite button
-        if st.button("⭐ Add to Favorite"):
-            st.session_state.favorites.append(text)
-            st.success("Added to favorite")
-
     except:
-        st.text_area("Raw Output", result, height=300)
+        st.error("Parsing error - raw output shown below")
+        st.write(result)
 
 # ---------------- MORE INFO ----------------
-if "last_input" in st.session_state:
-
-    if st.button("📖 More Information"):
-
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel("gemini-2.5-flash")
-
-        info_prompt = f"""
-You are a senior PCB Process Engineer.
-
-Text:
-{st.session_state["last_input"]}
-
-Explain:
-1. Meaning
-2. Causes
-3. Corrective actions
-4. Related process
-"""
-
-        info_response = model.generate_content(info_prompt)
-
-        st.markdown("## 📖 More Information")
-        st.write(info_response.text)
-
-# ---------------- SIDEBAR ----------------
-st.sidebar.title("📚 History")
-
-if st.session_state.history:
-    for i, item in enumerate(reversed(st.session_state.history[-10:])):
-        if st.sidebar.button(f"{i+1}. {item['input'][:20]}"):
-            st.sidebar.write(item["output"])
-
-st.sidebar.title("⭐ Favorites")
-
-for fav in st.session_state.favorites:
-    st.sidebar.write("• " + fav)
-
-# ---------------- FACTORY REPLY ----------------
-st.sidebar.title("💬 Factory Reply")
-
-if st.button("Generate Reply (Chinese)"):
+if info_btn and st.session_state.last_input:
 
     genai.configure(api_key=api_key)
     model = genai.GenerativeModel("gemini-2.5-flash")
 
-    reply_prompt = f"""
-You are a PCB engineer replying to Chinese factory.
+    info_prompt = f"""
+You are a senior PCB Process Engineer.
 
-Write short professional reply in:
+Analyze this term:
 
-1. English
-2. Chinese
+{text}
 
-Message:
-{st.session_state.get("last_input", "")}
+Provide:
+1. Meaning in PCB context
+2. Possible causes
+3. Corrective actions
+4. Related process step
 """
 
-    reply = model.generate_content(reply_prompt)
+    with st.spinner("Analyzing..."):
+        info = model.generate_content(info_prompt)
 
-    st.markdown("## 💬 Factory Reply")
-    st.write(reply.text)
+    st.markdown("## 📖 PCB Engineer Insight")
+    st.write(info.text)
+
+# ---------------- HISTORY ----------------
+st.markdown("## 📚 History")
+
+if st.session_state.history:
+    for i, h in enumerate(reversed(st.session_state.history[-10:])):
+        st.write(f"{i+1}. {h}")
