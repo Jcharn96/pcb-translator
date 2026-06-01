@@ -95,7 +95,7 @@ Thai:
 English:
 ...
 
-Chinese:
+Traditional Chinese (Taiwan):
 ...
 
 Pinyin:
@@ -114,8 +114,8 @@ Text:
 
     try:
         thai = result.split("English:")[0].replace("Thai:", "").strip()
-        english = result.split("English:")[1].split("Chinese:")[0].strip()
-        traditional chinese = result.split("Chinese:")[1].split("Pinyin:")[0].strip()
+        english = result.split("English:")[1].split("Traditional Chinese (Taiwan):")[0].strip()
+        chinese = result.split("Traditional Chinese (Taiwan):")[1].split("Pinyin:")[0].strip()
         pinyin = result.split("Pinyin:")[1].strip()
 
         st.markdown("## 👽 Result")
@@ -165,6 +165,11 @@ Provide:
 # ---------------- HISTORY ----------------
 st.markdown("## History")
 
+if st.button("Clear History"):
+    st.session_state.history = []
+    st.session_state.last_input = ""
+    st.success("History cleared")
+    
 if st.session_state.history:
     for i, h in enumerate(reversed(st.session_state.history[-10:])):
         st.write(f"{i+1}. {h}")
