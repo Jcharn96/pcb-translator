@@ -72,7 +72,7 @@ info_btn = col2.button("📖 More Info")
 if translate_btn:
 
     genai.configure(api_key=api_key)
-    model = genai.GenerativeModel("gemini-1.5-flash")
+    model = genai.GenerativeModel("gemini-2.5-flash")
 
     prompt = f"""
 You are a professional PCB manufacturing translator.
@@ -144,7 +144,7 @@ Text:
 if info_btn and st.session_state.last_input:
 
     genai.configure(api_key=api_key)
-    model = genai.GenerativeModel("gemini-1.5-flash")
+    model = genai.GenerativeModel("gemini-2.5-flash")
 
     info_prompt = f"""
 You are a senior PCB Process Engineer.
