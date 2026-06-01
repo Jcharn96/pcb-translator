@@ -2,182 +2,222 @@ import streamlit as st
 import google.generativeai as genai
 import streamlit.components.v1 as components
 
-# ---------------- APP CONFIG (APP-LIKE UI) ----------------
+# ---------------- APP CONFIG ----------------
 st.set_page_config(
-    page_title="PCB Translator",
+    page_title="Translator",
     page_icon="👽",
     layout="centered",
     initial_sidebar_state="collapsed"
 )
 
-# hide sidebar completely
+# Hide sidebar
 st.markdown("""
 <style>
-[data-testid="stSidebar"] {display: none;}
+[data-testid="stSidebar"] {
+    display: none;
+}
 </style>
 """, unsafe_allow_html=True)
 
-st.title("👽 PCB Translator")
+# ---------------- HEADER ----------------
+st.title("👽 Translator")
 
 # ---------------- API KEY ----------------
 api_key = st.secrets["GEMINI_API_KEY"]
+
+# ---------------- GEMINI CONFIG ----------------
+genai.configure(api_key=api_key)
 
 # ---------------- SESSION STATE ----------------
 if "history" not in st.session_state:
     st.session_state.history = []
 
-if "last_input" not in st.session_state:
-    st.session_state.last_input = ""
-
-# ---------------- COPY FUNCTION ----------------
+# ---------------- COPY BUTTON ----------------
 def copy_button(text, label):
-    components.html(f"""
+    components.html(
+        f"""
         <button onclick="navigator.clipboard.writeText(`{text}`)"
         style="
-            padding:8px 12px;
-            margin:5px 0;
+            width:100%;
+            padding:8px;
             border-radius:8px;
             border:1px solid #ccc;
             cursor:pointer;
-            width:100%;
         ">
         📋 Copy {label}
         </button>
-    """, height=45)
+        """,
+        height=45
+    )
 
-# ---------------- CARD UI ----------------
+# ---------------- CARD ----------------
 def card(title, content):
-    st.markdown(f"""
-    <div style="
-        padding:12px;
-        border-radius:10px;
-        border:1px solid #ddd;
-        margin-bottom:10px;
-        background-color:#fafafa;
-    ">
-    <b>{title}</b><br>{content}
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(
+        f"""
+        <div style="
+            padding:12px;
+            border-radius:10px;
+            border:1px solid #ddd;
+            margin-bottom:10px;
+            background-color:#fafafa;
+        ">
+        <b>{title}</b><br>
+        {content}
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
 # ---------------- INPUT ----------------
-st.markdown("### Input (PCB Term)")
-text = st.text_area("", height=140, placeholder="Enter PCB / Lithography / defect term...")
+text = st.text_area(
+    "Enter PCB term or sentence",
+    height=150,
+    placeholder="Example: Under Exposure"
+)
 
-col1, col2 = st.columns(2)
-
-translate_btn = col1.button("👽 Translate")
-info_btn = col2.button("📖 More Info")
+translate_btn = st.button("👽 Translate")
 
 # ---------------- TRANSLATE ----------------
 if translate_btn:
 
-    genai.configure(api_key=api_key)
+    if not text.strip():
+        st.warning("Please enter text.")
+        st.stop()
+
     model = genai.GenerativeModel("gemini-2.5-flash")
 
     prompt = f"""
 You are a professional PCB manufacturing translator.
 
 Expertise:
+- PCB Manufacturing
 - Lithography
+- SES Process
+- DES Process
 - Exposure
 - Developing
 - Photoresist
 - Alignment
 - SPC
-- Yield analysis
+- Yield Analysis
 - Etching
 
-Return EXACT format:
+Translate using terminology commonly used in Taiwan PCB factories.
+
+Return EXACTLY in this format:
 
 Thai:
-...
+<translation>
 
 English:
-...
+<translation>
 
 Traditional Chinese (Taiwan):
-...
+<translation>
 
 Pinyin:
-...
+<translation>
 
 Text:
 {text}
 """
 
-    with st.spinner("Translating..."):
-      try:
-        response = model.generate_content(prompt)
-        result = response.text
-      except Exception as e:
-        st.error(f"Gemini Error: {e}")
-        st.stop()
-
-    st.session_state.last_input = text
-    st.session_state.history.append(text)
-
     try:
-        thai = result.split("English:")[0].replace("Thai:", "").strip()
-        english = result.split("English:")[1].split("Traditional Chinese (Taiwan):")[0].strip()
-        chinese = result.split("Traditional Chinese (Taiwan):")[1].split("Pinyin:")[0].strip()
-        pinyin = result.split("Pinyin:")[1].strip()
 
-        st.markdown("## 👽 Result")
+        with st.spinner("Translating..."):
 
-        card("🇹🇭 Thai", thai)
-        copy_button(thai, "Thai")
+            response = model.generate_content(prompt)
 
-        card("🇬🇧 English", english)
-        copy_button(english, "English")
+        result = response.text
 
-        card("🇨🇳 Chinese", chinese)
-        copy_button(chinese, "Chinese")
+        st.session_state.history.append(text)
 
-        card("🔤 Pinyin", pinyin)
-        copy_button(pinyin, "Pinyin")
+        try:
 
-    except:
-        st.error("Parsing error - raw output shown below")
-        st.write(result)
+            thai = result.split("English:")[0].replace(
+                "Thai:", ""
+            ).strip()
 
-# ---------------- MORE INFO ----------------
-if info_btn and st.session_state.last_input:
+            english = result.split(
+                "English:"
+            )[1].split(
+                "Traditional Chinese (Taiwan):"
+            )[0].strip()
 
-    genai.configure(api_key=api_key)
-    model = genai.GenerativeModel("gemini-2.5-flash")
+            chinese = result.split(
+                "Traditional Chinese (Taiwan):"
+            )[1].split(
+                "Pinyin:"
+            )[0].strip()
 
-    info_prompt = f"""
-You are a senior PCB Process Engineer.
+            pinyin = result.split(
+                "Pinyin:"
+            )[1].strip()
 
-Analyze this term:
+            st.markdown("## Translation Result")
 
-{text}
+            card("🇹🇭 Thai", thai)
+            copy_button(thai, "Thai")
 
-Provide:
-1. Meaning in PCB context
-2. Possible causes
-3. Corrective actions
-4. Related process step
+            card("🇬🇧 English", english)
+            copy_button(english, "English")
+
+            card("🇹🇼 Traditional Chinese", chinese)
+            copy_button(chinese, "Chinese")
+
+            card("🔤 Pinyin", pinyin)
+            copy_button(pinyin, "Pinyin")
+
+        except Exception:
+
+            st.warning(
+                "Translation format changed. Showing raw response."
+            )
+
+            st.write(result)
+
+    except Exception as e:
+
+        error_text = str(e)
+
+        if "429" in error_text:
+
+            st.warning(
+                """
+⚠️ Gemini API usage limit reached.
+
+Please wait approximately 1 minute and try again.
+
+Free Gemini API has a request-per-minute limit.
 """
+            )
 
-    with st.spinner("Analyzing..."):
-      try:
-        info = model.generate_content(info_prompt)
-      except Exception as e:
-        st.error(f"Gemini Error: {e}")
-        st.stop()
+        elif "404" in error_text:
 
-    st.markdown("## 📖 PCB Engineer Insight")
-    st.write(info.text)
+            st.error(
+                "Model not found. Please check Gemini model name."
+            )
+
+        else:
+
+            st.error(
+                f"Gemini Error:\n\n{error_text}"
+            )
 
 # ---------------- HISTORY ----------------
-st.markdown("## History")
+st.markdown("---")
+st.markdown("### History")
 
-if st.button("Clear History"):
+if st.button("🗑 Clear History"):
+
     st.session_state.history = []
-    st.session_state.last_input = ""
-    st.success("History cleared")
-    
+
+    st.success("History cleared.")
+
 if st.session_state.history:
-    for i, h in enumerate(reversed(st.session_state.history[-10:])):
-        st.write(f"{i+1}. {h}")
+
+    for i, item in enumerate(
+        reversed(st.session_state.history[-10:]),
+        start=1
+    ):
+        st.write(f"{i}. {item}")
