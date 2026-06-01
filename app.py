@@ -106,8 +106,12 @@ Text:
 """
 
     with st.spinner("Translating..."):
+    try:
         response = model.generate_content(prompt)
         result = response.text
+    except Exception as e:
+        st.error(f"Gemini Error: {e}")
+        st.stop()
 
     st.session_state.last_input = text
     st.session_state.history.append(text)
@@ -157,7 +161,11 @@ Provide:
 """
 
     with st.spinner("Analyzing..."):
+    try:
         info = model.generate_content(info_prompt)
+    except Exception as e:
+        st.error(f"Gemini Error: {e}")
+        st.stop()
 
     st.markdown("## 📖 PCB Engineer Insight")
     st.write(info.text)
