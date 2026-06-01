@@ -5,7 +5,7 @@ import streamlit.components.v1 as components
 # ---------------- APP CONFIG (APP-LIKE UI) ----------------
 st.set_page_config(
     page_title="PCB Translator",
-    page_icon="🌏",
+    page_icon="👽",
     layout="centered",
     initial_sidebar_state="collapsed"
 )
@@ -17,7 +17,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-st.title("🌏 PCB Translator")
+st.title("👽 PCB Translator")
 
 # ---------------- API KEY ----------------
 api_key = st.secrets["GEMINI_API_KEY"]
@@ -60,19 +60,19 @@ def card(title, content):
     """, unsafe_allow_html=True)
 
 # ---------------- INPUT ----------------
-st.markdown("### 🧠 Input (PCB Term)")
+st.markdown("### Input (PCB Term)")
 text = st.text_area("", height=140, placeholder="Enter PCB / Lithography / defect term...")
 
 col1, col2 = st.columns(2)
 
-translate_btn = col1.button("🌍 Translate")
+translate_btn = col1.button("👽 Translate")
 info_btn = col2.button("📖 More Info")
 
 # ---------------- TRANSLATE ----------------
 if translate_btn:
 
     genai.configure(api_key=api_key)
-    model = genai.GenerativeModel("gemini-2.5-flash")
+    model = genai.GenerativeModel("gemini-1.5-flash")
 
     prompt = f"""
 You are a professional PCB manufacturing translator.
@@ -115,10 +115,10 @@ Text:
     try:
         thai = result.split("English:")[0].replace("Thai:", "").strip()
         english = result.split("English:")[1].split("Chinese:")[0].strip()
-        chinese = result.split("Chinese:")[1].split("Pinyin:")[0].strip()
+        traditional chinese = result.split("Chinese:")[1].split("Pinyin:")[0].strip()
         pinyin = result.split("Pinyin:")[1].strip()
 
-        st.markdown("## 🌍 Result")
+        st.markdown("## 👽 Result")
 
         card("🇹🇭 Thai", thai)
         copy_button(thai, "Thai")
@@ -140,7 +140,7 @@ Text:
 if info_btn and st.session_state.last_input:
 
     genai.configure(api_key=api_key)
-    model = genai.GenerativeModel("gemini-2.5-flash")
+    model = genai.GenerativeModel("gemini-1.5-flash")
 
     info_prompt = f"""
 You are a senior PCB Process Engineer.
@@ -163,7 +163,7 @@ Provide:
     st.write(info.text)
 
 # ---------------- HISTORY ----------------
-st.markdown("## 📚 History")
+st.markdown("## History")
 
 if st.session_state.history:
     for i, h in enumerate(reversed(st.session_state.history[-10:])):
