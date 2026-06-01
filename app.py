@@ -106,10 +106,10 @@ Text:
 """
 
     with st.spinner("Translating..."):
-    try:
+      try:
         response = model.generate_content(prompt)
         result = response.text
-    except Exception as e:
+      except Exception as e:
         st.error(f"Gemini Error: {e}")
         st.stop()
 
@@ -161,9 +161,9 @@ Provide:
 """
 
     with st.spinner("Analyzing..."):
-    try:
+      try:
         info = model.generate_content(info_prompt)
-    except Exception as e:
+      except Exception as e:
         st.error(f"Gemini Error: {e}")
         st.stop()
 
